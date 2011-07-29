@@ -1,0 +1,63 @@
+NAME
+    Dancer::Plugin::DebugToolbar - A debugging toolbar for Dancer web
+    applications
+
+VERSION
+    Version 0.01
+
+SYNOPSIS
+        use Dancer::Plugin::DebugToolbar;
+
+        if (config->{environment} eq 'development') {
+            enable_debug_toolbar;
+        }
+        ...
+
+DESCRIPTION
+    Dancer::Plugin::DebugToolbar allows you to add a debugging toolbar to
+    your Dancer web application.
+
+AUTHOR
+    Michal Wojciechowski, "<odyniec at cpan.org>"
+
+BUGS
+    Please report any bugs or feature requests to
+    "bug-dancer-plugin-debugtoolbar at rt.cpan.org", or through the web
+    interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Dancer-Plugin-DebugToolb
+    ar>. I will be notified, and then you'll automatically be notified of
+    progress on your bug as I make changes.
+
+SUPPORT
+    You can find documentation for this module with the perldoc command.
+
+        perldoc Dancer::Plugin::DebugToolbar
+
+    You can also look for information at:
+
+    *   RT: CPAN's request tracker
+
+        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=Dancer-Plugin-DebugToolbar
+        >
+
+    *   AnnoCPAN: Annotated CPAN documentation
+
+        <http://annocpan.org/dist/Dancer-Plugin-DebugToolbar>
+
+    *   CPAN Ratings
+
+        <http://cpanratings.perl.org/d/Dancer-Plugin-DebugToolbar>
+
+    *   Search CPAN
+
+        <http://search.cpan.org/dist/Dancer-Plugin-DebugToolbar/>
+
+LICENSE AND COPYRIGHT
+    Copyright 2011 Michal Wojciechowski.
+
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of either: the GNU General Public License as published
+    by the Free Software Foundation; or the Artistic License.
+
+    See http://dev.perl.org/licenses/ for more information.
+
