@@ -16,6 +16,9 @@ WriteMakefile(
     PL_FILES            => {},
     PREREQ_PM => {
         'Test::More' => 0,
+        'Dancer'     => 1.3070,
+        'File::ShareDir'    => 1.0,
+        'File::ShareDir::Install'   => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Dancer-Plugin-DebugToolbar-*' },
