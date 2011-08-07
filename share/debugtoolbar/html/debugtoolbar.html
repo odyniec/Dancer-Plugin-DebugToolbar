@@ -1,0 +1,20 @@
+<iframe id="debugtoolbar_toolbar_frame" src="%BASE%/html/toolbar.html"
+ seamless="seamless" style="display: none;">
+</iframe>
+<iframe id="debugtoolbar_window_frame" src="%BASE%/html/window.html"
+ seamless="seamless" style="display: none;">
+</iframe>
+<script type="text/javascript">
+(function () {
+    var toolbar_frame = document.getElementById('debugtoolbar_toolbar_frame'),
+        window_frame = document.getElementById('debugtoolbar_window_frame');
+    
+    toolbar_frame.contentWindow.cfg = '%CFG%';
+    
+    toolbar_frame.src = '%BASE%/html/toolbar.html';
+    window_frame.src = '%BASE%/html/window.html';
+})();
+</script>
+<style type="text/css">
+@import url("%BASE%/css/debugtoolbar.css");
+</style>

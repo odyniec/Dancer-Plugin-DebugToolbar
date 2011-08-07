@@ -3,19 +3,75 @@ NAME
     applications
 
 VERSION
-    Version 0.01
+    Version 0.011
 
 SYNOPSIS
+    Add the plugin to your web application:
+
         use Dancer::Plugin::DebugToolbar;
 
-        if (config->{environment} eq 'development') {
-            enable_debug_toolbar;
-        }
-        ...
+    And enable it in the configuration file, preferably in the development
+    environment ("environments/development.yml"):
+
+        plugins:
+            DebugToolbar:
+                enable: 1
 
 DESCRIPTION
     Dancer::Plugin::DebugToolbar allows you to add a debugging toolbar to
     your Dancer web application.
+
+CONFIGURATION
+    To enable and configure the plugin, add its settings to the Dancer
+    configuration file, under "plugins":
+
+        plugins:
+            DebugToolbar:
+                enable: 1
+                ...
+
+    You can do this either in the main configuration file ("config.yml"), or
+    in the configuration file for a specific environment (under
+    "environments/"). Normally, you'll want to enable the toolbar for the
+    development enviroment ("environments/development.yml").
+
+    The available configuration settings are described below.
+
+  enable
+    Enables the debugging toolbar.
+
+    Example:
+
+        enable: 1
+
+  show
+    The "show" setting lets you choose which information will be provided by
+    the debugging toolbar.
+
+    Example:
+
+        show:
+            database: 1
+            routes: 1
+
+    The available options are:
+
+    *   data
+
+        Data inspection screen. Allows you to inspect the "config",
+        "request", "session", and "vars" data structures.
+
+    *   database
+
+        Database information screen. Shows DBI trace and queries log.
+
+    *   routes
+
+        Routes screen. Shows all the routes defined in the application, and
+        indicates the matching routes.
+
+    If the "show" setting is not defined, the "data" and "routes" screens
+    are displayed by default.
 
 AUTHOR
     Michal Wojciechowski, "<odyniec at cpan.org>"

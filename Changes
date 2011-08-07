@@ -1,5 +1,10 @@
 Revision history for Dancer-Plugin-DebugToolbar
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.011   2011-08-07
+        * Most of the code rewritten for better separation of logic and 
+          presentation
+        * The toolbar and information window are now displayed as iframes
+        * Added basic database tracing capabilities
 
+0.01    2011-07-30
+        First version, released on an unsuspecting world.

@@ -1,349 +1,117 @@
-.dancer_plugin_debugtoolbar_toolbar {
-    background: #f4f4f4;
-    background-image: -moz-linear-gradient(top, #fff 0px, #f4f4f4 32px);
-    border-radius: 0.2em;
-    -moz-border-radius: 0.2em;
-    box-shadow: 1px 1px 2px #000000;
-    font-family: Arial, Gill Sans, sans-serif;
-    font-size: 12pt;
-    height: 2em;
-    line-height: 2em;
+html {
     overflow: hidden;
-    padding: 0 0.4em;
-    position: fixed;
-    right: 5px;
-    top: 5px;
-    vertical-align: text-bottom;
 }
 
-.dancer_plugin_debugtoolbar_toolbar button::-moz-focus-inner {
-    border: 0;
+body {
+    font-family: Arial, Gill Sans, sans-serif;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+    width: 3000px;
 }
 
-.dancer_plugin_debugtoolbar_toolbar span.logo {
-    background: none;
-    background-image: url("images/perldancer.png");
-    background-position: 0% 0%;
-    background-size: auto 100%;
-    border: none;
-    box-shadow: none;
+.container:after {
+    clear: both;
+    content: ".";
+    display: block;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+}
+
+/* Toolbar container */
+div#toolbar {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* Toolbar logo */
+.logo {
     cursor: pointer;
     float: left;
     font-size: 12pt;
     height: 2em;
     margin: 0 0.5em 0 0;
     padding: 0;
-    width: 6.8em;
 }
 
-.dancer_plugin_debugtoolbar_toolbar .buttons {
-    color: #000;
-    display: block;
+/* Toolbar buttons */
+.buttons {
     float: left;
-    font-family: Gill Sans, sans-serif;
-    font-size: 12pt;
     height: 2em;
     line-height: 2em;
-    margin: 0;
-    overflow: hidden;
-    padding: 0;
     white-space: nowrap;
-    vertical-align: text-bottom; 
+    vertical-align: text-bottom;
 }
 
-.dancer_plugin_debugtoolbar_toolbar ul li {
-    display: inline-block;
-    xfloat: left;
-    font-size: 12pt;
-    height: 22px;
-    line-height: 22px;
-    xvertical-align: middle;
-}
-
-.dancer_plugin_debugtoolbar_toolbar span {
+/* Button */
+span.button {
     background: none no-repeat 2px center;
     background-color: #ddd;
     border: solid 1px #d2d2d2;
-    xborder-left: solid 1px #d0d0d0;
-    xborder-top: solid 1px #d0d0d0;
-    xborder: none;
     border-radius: 0.2em;
     -moz-border-radius: 0.2em;
-    xbox-shadow: 0px 0px 1px #000;
     display: inline-block;
     float: left;
-    font-family: Gill Sans, sans-serif;
-    font-size: 11pt;
     height: 16px;
     line-height: 16px;
     margin: 5px 2px;
-    padding: 2px 2px 2px 18px;
-    xwidth: 1.6em;
-    xvertical-align: middle;
+    padding: 2px;
     text-indent: 4px;
 }
 
-.dancer_plugin_debugtoolbar_toolbar span.clickable:hover {
-    background-color: #cdf;
-    border: solid 1px #c2d2f2;
-    cursor: pointer;
+/* Close button */
+span.button.close {
+    background-image: url("images/cross.png");
+    margin-left: 6px;
+    padding-left: 18px;
 }
 
-.dancer_plugin_debugtoolbar_toolbar .buttons .align_left {
-    background-image: url("images/arrow-stop-180.png");
+/* Right/left alignment button */
+span.button.align {
+    padding-left: 18px;
 }
 
-.dancer_plugin_debugtoolbar_toolbar .buttons .align_right {
+span.button.align.left {
     background-image: url("images/arrow-stop.png");
 }
 
-.dancer_plugin_debugtoolbar_toolbar span.dancer_plugin_debugtoolbar_close {
-    background-image: url("images/cross.png");
-    margin-left: 6px;
+span.button.align.right {
+    background-image: url("images/arrow-stop-180.png");
 }
 
-.dancer_plugin_debugtoolbar_toolbar .buttons .time {
+/* -------------------------------------------------------------------------- */
+
+/* Dancer-specific rules */
+
+.logo {
+    background-image: url("images/perldancer.png");
+    background-position: 0% 0%;
+    background-size: auto 100%;
+    width: 6.8em;
+}
+
+span.button.time {
     background-image: url("images/clock.png");
-    xpadding: 0 0 0 20px;
+    padding-left: 18px;
 }
 
-.dancer_plugin_debugtoolbar_toolbar .buttons .routes {
-    background-image: url("images/arrow-branch-090.png");
-}
-
-.dancer_plugin_debugtoolbar_toolbar .buttons .data {
+span.button.data {
     background-image: url("images/report-paper.png");
-}
-
-.dancer_plugin_debugtoolbar_window {
-    background: #fff no-repeat center center;
-    background-image: url("images/dcr-header-logo-semitransparent.png");
-    border-radius: 0.6em;
-    -moz-border-radius: 0.6em;
-    box-shadow: 1px 1px 2px #000000;
-    font-family: Arial, Gill Sans, sans-serif;
-    padding: 0;
-    position: fixed;
-}
-
-.dancer_plugin_debugtoolbar_window h1 {
-    background: #555;
-    background-image: -moz-linear-gradient(top, #777 0%, #333 100%);
-    border-radius: 0.3em;
-    -moz-border-radius: 0.3em;
-    color: #fff;
-    font-size: 160%;
-    margin: 0;
-    padding: 0.2em 0.4em;
-    text-shadow: 0px 0px 2px #000;
-}
-
-.dancer_plugin_debugtoolbar_window .screen {
-    overflow: visible;
-    padding: 0.4em;
-	position: relative;
-}
-
-.dancer_plugin_debugtoolbar_window .scrolled {
-	border: solid 1px #bbb;
-	height: 100%;
-	overflow: auto;
-}
-
-.dancer_plugin_debugtoolbar_window .scrolled h2 {
-    background: #ddd;
-    color: #333;
-    font-size: 125%;
-    margin: 0;
-    padding: 0.1em;
-}
-
-.dancer_plugin_debugtoolbar_window .data {
-    xwhite-space: pre;
-}
-
-.dancer_plugin_debugtoolbar_window .screen ul.tab {
-    float: left;
-	list-style: none;
-	margin: 0.6em 0;
-	padding: 0;
-	width: 100%;
-}
-
-.dancer_plugin_debugtoolbar_window .screen ul.tab li {
-	background: #ddd;
-	border-radius: 0.5em;
-	cursor: pointer;
-    display: inline;
-    padding: 0.2em 0.8em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen ul.tab li.active {
-	background: #cdf;
-}
-
-.dancer_plugin_debugtoolbar_window .screen ul.util {
-    float: left;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    text-align: right;
-}
-
-.dancer_plugin_debugtoolbar_window .screen ul.util li {
-    background: none no-repeat 2px center;
-    border: solid 1px #d2d2d2;
-    border-radius: 0.2em;
-    -moz-border-radius: 0.2em;
     cursor: pointer;
-    display: inline-block;
-    font-size: 11pt;
-    height: 16px;
-    line-height: 16px;
-    margin: 3px 2px 4px 2px;
-    padding: 2px 2px 2px 18px;
+    padding-left: 18px;
 }
 
-.dancer_plugin_debugtoolbar_window .data.screen ul.util li.console {
-    background-image: url("images/application-import.png");
-}
-
-.dancer_plugin_debugtoolbar_window .content {
-    clear: both;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul {
-	font-family: monospace;
-	font-size: 9pt;
-    list-style: none;
-	margin: 0;
-	padding: 0;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul li {
-    xbackground: #f4f4f4 -moz-linear-gradient(top, #fff 0px, #f4f4f4 20px);
-	border-bottom: solid 1px #ccc;
-	clear: both;
-	display: block;
-	height: 100%;
-	line-height: 180%;
-	xposition: relative;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul li li:first-child {
-    border-top: solid 1px #ccc;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul li li:last-child {
-    border-bottom: none;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul li li {
-	margin: 0;
-	padding: 0;
-    xtext-indent: 2em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure li div span:first-child,
-.dancer_plugin_debugtoolbar_window .screen .structure .value-empty:first-child {
-    margin-left: 2em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure li li div span:first-child,
-.dancer_plugin_debugtoolbar_window .screen .structure li .value-empty:first-child {
-    margin-left: 4em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure li li li div span:first-child,
-.dancer_plugin_debugtoolbar_window .screen .structure li li .value-empty:first-child {
-    margin-left: 6em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure li li li li div span:first-child,
-.dancer_plugin_debugtoolbar_window .screen .structure li li li .value-empty:first-child {
-    margin-left: 8em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure li li li li li div span:first-child,
-.dancer_plugin_debugtoolbar_window .screen .structure li li li li .value-empty:first-child {
-    margin-left: 10em;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure div.field {
-	height: 100%;
-	position: relative;
-	vertical-align: middle;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure span.expand,
-.dancer_plugin_debugtoolbar_window .screen .structure span.placeholder {
-    display: inline-block;
-    xfloat: left;
-    height: 1em;
-    line-height: 1em;
-    margin: auto 0.6em;
-    width: 1em;
-    vertical-align: text-top;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure span.expand {
-    background: #fff center center;
-    background-image: url("images/expand.png");
- 	border: solid 1px #888;
-	border-radius: 0.1em;
-	-moz-border-radius: 0.1em;
-	box-shadow: 1px 1px 1px #888;
+span.button.routes {
+    background-image: url("images/arrow-branch-090.png");
     cursor: pointer;
-	text-align: center;
+    padding-left: 18px;
 }
 
-.dancer_plugin_debugtoolbar_window .screen .structure .expanded span.expand {
-    background-image: url("images/collapse.png");
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure span.placeholder {
-	padding: 1px;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul span.name {
-	xfloat: left;
-	xdisplay: block;
-    xwidth: 25%;
-    position: relative;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure ul span.set {
-    font-family: sans-serif;
-    font-weight: bold;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure div.field {
-	display: inline-block;
-	width: 25%;
-	vertical-align: top;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure div.value {
-	display: inline-block;
-	max-width: 75%;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure div.value-number {
-    color: #45e;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure div.value-string {
-    color: #0a1;
-}
-
-.dancer_plugin_debugtoolbar_window .screen .structure div.value-undefined,
-.dancer_plugin_debugtoolbar_window .screen .structure div.value-empty {
-	color: #888;
-    font-style: italic;
-}
-
-.dancer_plugin_debugtoolbar_window .routes .structure span.matching {
-    color: green;
+span.button.database {
+    background-image: url("images/database.png");
+    cursor: pointer;
+    padding-left: 18px;
 }

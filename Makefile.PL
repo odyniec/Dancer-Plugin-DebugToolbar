@@ -19,6 +19,7 @@ WriteMakefile(
         'Dancer'     => 1.3070,
         'File::ShareDir'    => 1.0,
         'File::ShareDir::Install'   => 0,
+        'Tie::Hash::Indexed'    => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Dancer-Plugin-DebugToolbar-*' },

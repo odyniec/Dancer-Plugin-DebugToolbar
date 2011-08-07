@@ -14,309 +14,306 @@ use Dancer::Plugin;
 use Dancer::Route::Registry;
 use File::ShareDir;
 use File::Spec::Functions qw(catfile);
+use Module::Loaded;
 use Scalar::Util qw(blessed looks_like_number);
+use Tie::Hash::Indexed;
 use Time::HiRes qw(time);
 
-our $VERSION = '0.01';
+our $VERSION = '0.011';
 
 # Distribution-level shared data directory
 my $dist_dir = File::ShareDir::dist_dir('Dancer-Plugin-DebugToolbar');
 
 # Information to be displayed to the user
-my $info = {};
-my $time_start;
-my $toolbar_enabled = 0;
+my $time_start = time;
+my $dbi_trace;
+my $dbi_queries;
+
 my $base = '/dancer-debug-toolbar';
 my $route_pattern;
 
-# Template for the HTML code to be appended to the requested page
-my $template = <<'END';
-<script type="text/javascript" src="%BASE%/js/init.js"></script>
-<script type="text/javascript">
-dancer_plugin_debugtoolbar.html = '%HTML%';
-dancer_plugin_debugtoolbar.info = '%INFO%';
-</script>
-<script type="text/javascript" src="%BASE%/js/jquery.min.js"></script>
-<script type="text/javascript" src="%BASE%/js/yaml_min.js"></script>
-<script type="text/javascript" src="%BASE%/js/toolbar.js"></script>
-<style type="text/css">
-@import url("%BASE%/css/toolbar.css");
-</style>
-END
+my $settings = plugin_setting;
 
-sub _value_html {
-    my ($value, $level, $omit_type) = @_;
-    my $s = '';
+# Default settings
+if (!defined $settings->{show}) {
+    # By default, we show data and routes
+    $settings->{show} = {
+        data => 1,
+        routes => 1
+    };
+}
+
+if (!$settings->{enable}) {
+    return 1;
+}
+
+if ($settings->{show}->{database}) {
+    require Dancer::Plugin::DebugToolbar::DBI;
+}
+
+sub _ordered_hash (%) {
+    tie my %hash => 'Tie::Hash::Indexed';
+    %hash = @_;
+    \%hash
+}
+
+sub _wrap_data {
+    my ($var, %options) = @_;
+    my $ret = {};
     
-    if (UNIVERSAL::isa($value, "HASH")) {
-        # Hash
-        if (!$omit_type) {
-            if (my $class = blessed($value)) {
-                $s .= '<div class="value">' .
-                    '<a href="http://search.cpan.org/perldoc?' . $class .
-                    '">' . $class . '</a></div>';
-            }
-            else {
-                $s .= '<div class="value">HASH</div>';
-            }
+    if (UNIVERSAL::isa($var, "ARRAY")) {
+        $ret->{'type'} = 'list';
+        $ret->{'value'} = _ordered_hash();
+        
+        my $i = 0;
+        
+        # List array members
+        foreach my $item (@$var) {
+            $ret->{'value'}->{$i++} = _wrap_data($item, %options);
         }
         
-        if ($level < 5) {
-            $s .= '<div class="sub hash" style="display: none;">' .
-                _build_data_html($value, $level + 1) . '</div>';
-        }
+        $ret->{'short_value'} = 'ARRAY';
     }
-    elsif (UNIVERSAL::isa($value, "ARRAY")) {
-        # Array
-        if (!$omit_type) {
-            $s .= '<div class="value">ARRAY</div>';
+    elsif (UNIVERSAL::isa($var, "HASH")) {
+        $ret->{'type'} = 'map';
+        $ret->{'value'} = _ordered_hash();
+        
+        foreach my $name ($options{'sort-keys'} ? sort keys %$var : keys %$var) {
+            $ret->{'value'}->{$name} = _wrap_data($var->{$name},
+                %options);
         }
         
-        if ($level < 5) {
-            $s .= '<div class="sub array" style="display: none;">' .
-                _build_data_html($value, $level + 1) . '</div>';
+        if (my $class = blessed($var)) {
+            # Blessed hash
+            $ret->{'short_value'} = {
+                html => '<div class="value">' .
+                    '<a href="http://search.cpan.org/perldoc?' . $class . '">' .
+                    $class . '</a></div>'
+            };
+        }
+        else {
+            $ret->{'short_value'} = 'HASH';
         }
     }
-    elsif (looks_like_number($value)) {
+    elsif (looks_like_number($var)) {
         # Number
-        $s .= '<div class="value value-number">' . $value . '</div>';
+        $ret->{'type'} = 'number';
+        $ret->{'value'} = $var;
     }
-    elsif (defined $value) {
+    elsif (defined $var) {
         # String
-        $s .= '<div class="value value-string">&quot;' . $value .
-            '&quot;</div>';
+        $ret->{'type'} = 'string';
+        $ret->{'value'} = '"' . $var . '"';
     }
-    elsif (!defined $value) {
+    elsif (!defined $var) {
         # Undefined
-        $s .= '<div class="value value-undefined">undefined</div>';
+        $ret->{'type'} = 'perl/undefined';
     }
     else {
-        $s .= '<div class="value">' . $value . '</div>';
+        $ret->{'type'} = '';
+        $ret->{'value'} = $var;
     }
     
-    return $s;
+    return $ret;
 }
 
-sub _build_data_html {
-    my ($vars, $level, $no_sort) = @_;
-    
-    $level = $level || 0;
+my $after_sub;
+my $after_reregistered = 0;
 
-    my $s = '<ul>';        
-
-    if (UNIVERSAL::isa($vars, "Dancer::Plugin::DebugToolbar::_hash_set")) {
-        if (scalar keys %$vars > 0) {
-            foreach my $name ($no_sort ? keys %$vars : sort keys %$vars) {
-                $s .= '<li><div class="field">';
-                $s .= '<span class="set name">' . $name . '</span></div>';
-                $s .= _value_html($vars->{$name}, $level, 1);
-                $s .= '</li>';
-            }
-        }
-        else {
-            $s .= '<li><div class="value-empty">empty</div></li>';
-        }
-    }
-    elsif (UNIVERSAL::isa($vars, "ARRAY")) {
-        if (scalar @$vars > 0) {
-            my $i = 0;
-            
-            # List array members
-            foreach my $value (@$vars) {
-                $s .= '<li><div class="field">';
-                $s .= '<span class="name">' . $i++ . '</span></div>';
-                $s .= _value_html($value, $level);
-                $s .= '</li>';
-            }
-        }
-        else {
-            $s .= '<li><div class="value-empty">empty</div></li>';
-        }
-    }
-    elsif (UNIVERSAL::isa($vars, "HASH")) {
-        if (scalar keys %$vars > 0) {
-            foreach my $name ($no_sort ? keys %$vars : sort keys %$vars) {
-                $s .= '<li><div class="field">';
-                $s .= '<span class="name">' . $name . '</span></div>';
-                $s .= _value_html($vars->{$name}, $level);
-                $s .= '</li>';
-            }
-        }
-        else {
-            $s .= '<li><div class="value-empty">empty</div></li>';
-        }
-    }
-    
-    $s .= '</ul>';
-    
-    if ($level == 0) {
-        $s =~ s!\n!\\\\n!gm;
-    }
-    
-    return $s;
-}
-
-before sub {
-    return if (!$toolbar_enabled);
-    
-    $time_start = time;
-};
-
-after sub {
-	return if (!$toolbar_enabled);
+after $after_sub = sub {
+    # To make sure we get executed as the very last "after" hook (after all the
+    # other hooks defined in the application), we register our subroutine again,
+    # and exit this call.
+	if (!$after_reregistered) {
+	    after $after_sub;
+	    $after_reregistered = 1;
+	    return;
+	}
 	
-    $info->{'time'} = time - $time_start;
-    
-    my $data = $info->{'data'} = {};
-    
-    #
-    # Get configuration
-    #
-    $data->{'config'} = {
-        'html' => _build_data_html(config),
-        'dumper' => to_dumper(config),
-        'yaml' => to_yaml(config)
-    };
-    
-    #
-    # Get shared variables
-    #
-    $data->{'vars'} = {
-    	'html' => _build_data_html(vars),
-    	'dumper' => to_dumper(vars),
-    	'yaml' => to_yaml(vars)
-    };
-    
-    #
-    # Get the current request object
-    #
-    $data->{'request'} = {
-        'html' => _build_data_html(request),
-        'dumper' => to_dumper(request),
-        'yaml' => to_yaml(request)
-    };
-    
-    #
-    # Get session data, if available
-    #
-    if (config->{'session'}) {
-        $data->{'session'} = {
-            'html' => _build_data_html(session),
-            'dumper' => to_dumper(session),
-            'yaml' => to_yaml(session)
-        };
-    }
+	my $time_elapsed = time - $time_start;
     
     #
     # Get routes
     #
     my $routes = Dancer::App->current->registry->routes();
     
-    $info->{'routes'} = {
-        # All routes
-        all => {},
-        # Matching routes
-        matching => {}
-    };
-    
-    my $all = $info->{'routes'}->{'all'};
-    my $matching = $info->{'routes'}->{'matching'};
+    my $all_routes = {};
+    my $matching_routes = {};
     
     foreach my $type (keys %$routes) {
-        $all->{uc $type} = [];
-        $matching->{uc $type} = [];
+        $all_routes->{uc $type} = [];
+        $matching_routes->{uc $type} = [];
         
         foreach my $route (@{$routes->{$type}}) {
-            # Exclude our own route used to get JS/CSS files
+            # Exclude our own route used to access the toolbar JS/CSS files
             next if ($route->{'pattern'} eq $route_pattern);
             
-            my $route_data =
-                bless({ $route->{'pattern'} => {
-                    'Pattern' => $route->{'pattern'},
-                    'Compiled regexp' => $route->{'_compiled_regexp'},
-                } }, "Dancer::Plugin::DebugToolbar::_hash_set");
+            my $route_info = {};
+            my $route_data = _ordered_hash(
+                'Pattern' => $route->{'pattern'},
+                'Compiled regexp' => $route->{'_compiled_regexp'}
+            );
             
             # Is this a matching route?
             if ($route->match_data) {
-                $route_data->{$route->{'pattern'}}->{'Match data'} =
-                    $route->{'match_data'};
+                $route_data->{'Match data'} = $route->match_data;
             }
             
-            my $route_info = {
-                'html' => _build_data_html($route_data, undef, 1)
+            $route_info = {
+                'pattern' => $route->{'pattern'},
+                'matching' => $route->match_data ? 1 : 0,
+                'data' => _wrap_data($route_data)
             };
 
             # Add the route to the list of all routes
-            push(@{$all->{uc $type}}, $route_info);
-            
-            # If this is a matching route, add it to a separate list of matching
-            # routes
+            push(@{$all_routes->{uc $type}}, $route_info);
+
             if ($route->match_data) {
-                push(@{$matching->{uc $type}}, $route_info);
+                # Add the route to the list of matching routes
+                push(@{$matching_routes->{uc $type}}, $route_info);
             }
-            
         }
     }
     
-    foreach my $key ('config', 'vars', 'request', 'session') {
-    	if (defined $data->{$key}->{'dumper'}) {
-            $data->{$key}->{'dumper'} =~ s!\n!\\\\n!gm;
-    	}
-    }
+    my $response = shift;
+    my $content = $response->content;
     
-    my $info_json = to_json($info);
-    # Do some replacements so that the JSON data can be made into a JS string
-    # wrapped in single quotes
-    $info_json =~ s!\\!\\\\!gm;
-    $info_json =~ s!\n!\\\n!gm;
-    $info_json =~ s!'!\\'!gm;
-    
-    # Read the toolbar HTML
     my $html;
-    open(F, "<", catfile($dist_dir, 'debugtoolbar', 'html', 'toolbar.html'));
+    open(F, "<", catfile($dist_dir, 'debugtoolbar', 'html',
+        'debugtoolbar.html'));
     {
         local $/;
         $html = <F>;
     }
     close(F);
-        
-    $html =~ s!\n!\\\n!gm;
-    $html =~ s!'!\\'!gm;
     
-    $template =~ s/%BASE%/$base/mg;
-    $template =~ s/%HTML%/$html/mg;
-    $template =~ s/%INFO%/$info_json/mg;
+    $html =~ s/%BASE%/$base/mg;
     
-    my $response = shift;
-    my $content = $response->content;
+    my $config = config;
+    my $request = request;
+    my $session;
+    my $vars = vars;
     
-    $content =~ s!(?=</body>\s*</html>\s*$)!$template!msi;
+    # Session must be defined in the configuration, otherwise it doesn't exist
+    if (config->{'session'}) {
+        $session = session;
+    }
+    
+    # Remove private members from request object
+    for my $name (keys %$request) {
+        delete $request->{$name} if ($name =~ /^_/);
+    }
+
+    my $show = $settings->{'show'};
+    
+    if ($show->{'database'}) {
+        # Get the collected DBI trace and queries    
+        $dbi_trace = Dancer::Plugin::DebugToolbar::DBI::get_dbi_trace();
+        $dbi_queries = Dancer::Plugin::DebugToolbar::DBI::get_dbi_queries();
+    }
+    
+    my $toolbar_cfg = {
+        'toolbar' => {
+            'logo' => 1,
+            'buttons' => _ordered_hash(
+                'time' => {
+                    'text' => sprintf("%.04fs", $time_elapsed)
+                },
+                'data' => $show->{'data'} ? {
+                    'text' => 'data'
+                } : undef,
+                'routes' => $show->{'routes'} ? {
+                    'text' => 'routes'  
+                } : undef,
+                'database' => $show->{'database'} ? {
+                    'text' => 'database'
+                } : undef,
+                'align' => 1,
+                'close' => 1
+            )
+        },
+        'screens' => {
+            'data' => {
+                'title' => 'Data',
+                'pages' => _ordered_hash(
+                    'config' => {
+                        'name' => 'config',
+                        'type' => 'data-structure/perl',
+                        'data' => _wrap_data($config, 'sort-keys' => 1)
+                    },
+                    'request' => {
+                        'name' => 'request',
+                        'type' => 'data-structure/perl',
+                        'data' => _wrap_data($request, 'sort-keys' => 1)
+                    },
+                    'session' => $session ? {
+                        'name' => 'session',
+                        'type' => 'data-structure/perl',
+                        'data' => _wrap_data($session, 'sort-keys' => 1)
+                    } : 1,
+                    'vars' => {
+                        'name' => 'vars',
+                        'type' => 'data-structure/perl',
+                        'data' => _wrap_data($vars, 'sort-keys' => 1)
+                    }
+                )
+            },
+            'routes' => {
+                'title' => 'Routes',
+                'pages' => _ordered_hash(
+                    'all' => {
+                        'type' => 'routes',
+                        'routes' => $all_routes
+                    },
+                    'matching' => {
+                        'type' => 'routes',
+                        'routes' => $matching_routes
+                    }
+                )
+            },
+            # Database
+            'database' => $show->{'database'} ? {
+                'title' => 'Database',
+                'pages' => _ordered_hash(
+                    'trace' => {
+                        'type' => 'text',
+                        'content' => $dbi_trace
+                    },
+                    'queries' => {
+                        'type' => 'database-queries',
+                        'queries' => $dbi_queries
+                    }
+                )
+            } : undef
+        }
+    };
+    
+    # Encode the configuration as JSON
+    my $cfg = to_json($toolbar_cfg);
+    
+    # Do some replacements so that the JSON data can be made into a JS string
+    # wrapped in single quotes
+    $cfg =~ s!\\!\\\\!gm;
+    $cfg =~ s!\n!\\\n!gm;
+    $cfg =~ s!'!\\'!gm;
+    
+    $html =~ s/%CFG%/$cfg/mg;
+    
+    $content =~ s!(?=</body>\s*</html>\s*$)!$html!msi;
     
     $response->content($content);
 };
 
-register enable_debug_toolbar => sub {
-    my (%options) = @_;
+if (defined $settings->{'base'}) {
+    $base = $settings->{'base'};
+}
     
-    if (defined $options{'base'}) {
-        $base = $options{'base'};
-    }
+$route_pattern = qr(^$base/.*);
     
-    $route_pattern = qr(^$base/.*);
-    
-    get $route_pattern => sub {
-        (my $path = request->path_info) =~ s!^$base/!!;
-        send_file(catfile($dist_dir, 'debugtoolbar', split(m!/!, $path)),
-            system_path => 1);
-    };
-
-    $toolbar_enabled = 1;
-};
-
-register disable_debug_toolbar => sub {
-	$toolbar_enabled = 0;
-	
-	# TODO: Remove route?
+get $route_pattern => sub {
+    (my $path = request->path_info) =~ s!^$base/!!;
+    send_file(catfile($dist_dir, 'debugtoolbar', split(m!/!, $path)),
+        system_path => 1);
 };
 
 register_plugin;
@@ -328,21 +325,86 @@ __END__
 
 =head1 VERSION
 
-Version 0.01
+Version 0.011
 
 =head1 SYNOPSIS
 
-    use Dancer::Plugin::DebugToolbar;
+Add the plugin to your web application:
 
-    if (config->{environment} eq 'development') {
-        enable_debug_toolbar;
-    }
-    ...
+    use Dancer::Plugin::DebugToolbar;
+    
+And enable it in the configuration file, preferably in the development
+environment (C<environments/development.yml>):
+
+    plugins:
+        DebugToolbar:
+            enable: 1
+
 
 =head1 DESCRIPTION
 
 Dancer::Plugin::DebugToolbar allows you to add a debugging toolbar to your
 Dancer web application.
+
+=head1 CONFIGURATION
+
+To enable and configure the plugin, add its settings to the Dancer configuration
+file, under C<plugins>:
+
+    plugins:
+        DebugToolbar:
+            enable: 1
+            ...
+
+You can do this either in the main configuration file
+(C<config.yml>), or in the configuration file for a specific environment (under
+C<environments/>). Normally, you'll want to enable the toolbar for the
+development enviroment (C<environments/development.yml>).
+
+The available configuration settings are described below.
+
+=head2 enable
+
+Enables the debugging toolbar.
+
+Example:
+
+    enable: 1
+
+=head2 show
+
+The C<show> setting lets you choose which information will be provided by the
+debugging toolbar.
+
+Example:
+
+    show:
+        database: 1
+        routes: 1
+
+The available options are:
+
+=over
+
+=item * data
+
+Data inspection screen. Allows you to inspect the C<config>, C<request>,
+C<session>, and C<vars> data structures.
+
+=item * database
+
+Database information screen. Shows L<DBI> trace and queries log.
+
+=item * routes
+
+Routes screen. Shows all the routes defined in the application, and indicates
+the matching routes.
+
+=back
+
+
+If the C<show> setting is not defined, the C<data> and C<routes> screens are
+displayed by default.
 
 =head1 AUTHOR
 
