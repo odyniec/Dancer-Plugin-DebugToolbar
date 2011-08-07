@@ -15,4 +15,6 @@ eval "use Pod::Coverage $min_pc";
 plan skip_all => "Pod::Coverage $min_pc required for testing POD coverage"
     if $@;
 
-all_pod_coverage_ok();
+my @modules = grep {!/^Dancer::Plugin::DebugToolbar::DBI$/} all_modules();
+plan tests => scalar @modules;
+pod_coverage_ok($_) for @modules;

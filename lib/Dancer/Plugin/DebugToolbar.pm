@@ -19,7 +19,7 @@ use Scalar::Util qw(blessed looks_like_number);
 use Tie::Hash::Indexed;
 use Time::HiRes qw(time);
 
-our $VERSION = '0.011';
+our $VERSION = '0.012';
 
 # Distribution-level shared data directory
 my $dist_dir = File::ShareDir::dist_dir('Dancer-Plugin-DebugToolbar');
@@ -325,7 +325,7 @@ __END__
 
 =head1 VERSION
 
-Version 0.011
+Version 0.012
 
 =head1 SYNOPSIS
 
