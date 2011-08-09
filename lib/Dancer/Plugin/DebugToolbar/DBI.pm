@@ -19,6 +19,11 @@ sub get_dbi_queries {
     return $_dbi_queries;
 }
 
+sub reset {
+    $_dbi_trace = undef;
+    $_dbi_queries = [];
+}
+
 my $_DBI_connect = \&DBI::connect;
 my $_DBI_st_execute = \&DBI::st::execute;
 

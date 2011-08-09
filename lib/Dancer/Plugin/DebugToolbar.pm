@@ -19,18 +19,19 @@ use Scalar::Util qw(blessed looks_like_number);
 use Tie::Hash::Indexed;
 use Time::HiRes qw(time);
 
-our $VERSION = '0.012';
+our $VERSION = '0.013';
 
 # Distribution-level shared data directory
 my $dist_dir = File::ShareDir::dist_dir('Dancer-Plugin-DebugToolbar');
 
 # Information to be displayed to the user
-my $time_start = time;
+my $time_start;
 my $dbi_trace;
 my $dbi_queries;
 
 my $base = '/dancer-debug-toolbar';
 my $route_pattern;
+my $hook_registered;
 
 my $settings = plugin_setting;
 
@@ -117,19 +118,19 @@ sub _wrap_data {
     return $ret;
 }
 
-my $after_sub;
-my $after_reregistered = 0;
+before sub {
+    $time_start = time;
+    Dancer::Plugin::DebugToolbar::DBI::reset();
+};
 
-after $after_sub = sub {
-    # To make sure we get executed as the very last "after" hook (after all the
-    # other hooks defined in the application), we register our subroutine again,
-    # and exit this call.
-	if (!$after_reregistered) {
-	    after $after_sub;
-	    $after_reregistered = 1;
-	    return;
-	}
-	
+my $after_hook = sub {
+    my $response = shift;
+    my $content = $response->content;
+    my $status = $response->status;
+    
+    return if $status < 200 || $status == 204 || $status == 304;
+    return if $response->content_type !~ m!^(?:text/html|application/xhtml\+xml)!;
+    
 	my $time_elapsed = time - $time_start;
     
     #
@@ -155,39 +156,25 @@ after $after_sub = sub {
             );
             
             # Is this a matching route?
-            if ($route->match_data) {
+            if (request->path_info =~ $route->{'_compiled_regexp'}) {
                 $route_data->{'Match data'} = $route->match_data;
             }
             
             $route_info = {
                 'pattern' => $route->{'pattern'},
-                'matching' => $route->match_data ? 1 : 0,
+                'matching' => defined $route_data->{'Match data'},
                 'data' => _wrap_data($route_data)
             };
 
             # Add the route to the list of all routes
             push(@{$all_routes->{uc $type}}, $route_info);
 
-            if ($route->match_data) {
+            if ($route_info->{matching}) {
                 # Add the route to the list of matching routes
                 push(@{$matching_routes->{uc $type}}, $route_info);
             }
         }
     }
-    
-    my $response = shift;
-    my $content = $response->content;
-    
-    my $html;
-    open(F, "<", catfile($dist_dir, 'debugtoolbar', 'html',
-        'debugtoolbar.html'));
-    {
-        local $/;
-        $html = <F>;
-    }
-    close(F);
-    
-    $html =~ s/%BASE%/$base/mg;
     
     my $config = config;
     my $request = request;
@@ -288,20 +275,38 @@ after $after_sub = sub {
         }
     };
     
+    my $html;
+    open(F, "<", catfile($dist_dir, 'debugtoolbar', 'html',
+        'debugtoolbar.html'));
+    {
+        local $/;
+        $html = <F>;
+    }
+    close(F);
+    
     # Encode the configuration as JSON
-    my $cfg = to_json($toolbar_cfg);
+    my $cfg_json = to_json($toolbar_cfg);
     
     # Do some replacements so that the JSON data can be made into a JS string
     # wrapped in single quotes
-    $cfg =~ s!\\!\\\\!gm;
-    $cfg =~ s!\n!\\\n!gm;
-    $cfg =~ s!'!\\'!gm;
-    
-    $html =~ s/%CFG%/$cfg/mg;
+    $cfg_json =~ s!\\!\\\\!gm;
+    $cfg_json =~ s!\n!\\\n!gm;
+    $cfg_json =~ s!'!\\'!gm;
+
+    $html =~ s/%DEBUGTOOLBAR_CFG%/$cfg_json/m;
+    $html =~ s/%BASE%/$base/mg;
     
     $content =~ s!(?=</body>\s*</html>\s*$)!$html!msi;
     
     $response->content($content);
+};
+
+after sub {
+    # Try to get the $after_hook sub executed as the very last "after" hook
+    # (after all the other hooks defined in the application)
+    return if $hook_registered;
+    after $after_hook;
+    $hook_registered = 1;
 };
 
 if (defined $settings->{'base'}) {
@@ -312,6 +317,7 @@ $route_pattern = qr(^$base/.*);
     
 get $route_pattern => sub {
     (my $path = request->path_info) =~ s!^$base/!!;
+    
     send_file(catfile($dist_dir, 'debugtoolbar', split(m!/!, $path)),
         system_path => 1);
 };
@@ -325,7 +331,7 @@ __END__
 
 =head1 VERSION
 
-Version 0.012
+Version 0.013
 
 =head1 SYNOPSIS
 

@@ -1,10 +1,12 @@
-//function Toolbar
-
 function DebugToolbar(cfg) {
     var $toolbar, $window, $toolbarFrame, $windowFrame;
     var displayedScreen, displayedPage;
     
     function init() {
+        if (typeof cfg == 'undefined') {
+            cfg = parent.__debugtoolbarCfg;
+        }
+        
         if (typeof cfg == 'string') {
             /* JSON configuration */
             cfg = $.parseJSON(cfg);
@@ -453,8 +455,6 @@ var DatabaseQueriesPage = Page.extend({
             $ul.append($('<li />').append($('<pre />')
                 .append($(prettyPrintOne(queries[i].query, 'sql')))));
         }
-        
-        //$ul.syntaxHighlight();
         
         this.$page.append($ul);
     }
