@@ -19,7 +19,7 @@ use Scalar::Util qw(blessed looks_like_number);
 use Tie::Hash::Indexed;
 use Time::HiRes qw(time);
 
-our $VERSION = '0.013';
+our $VERSION = '0.014';
 
 # Distribution-level shared data directory
 my $dist_dir = File::ShareDir::dist_dir('Dancer-Plugin-DebugToolbar');
@@ -120,7 +120,10 @@ sub _wrap_data {
 
 before sub {
     $time_start = time;
-    Dancer::Plugin::DebugToolbar::DBI::reset();
+    
+    if ($settings->{show}->{database}) {
+        Dancer::Plugin::DebugToolbar::DBI::reset();
+    }
 };
 
 my $after_hook = sub {
@@ -331,7 +334,7 @@ __END__
 
 =head1 VERSION
 
-Version 0.013
+Version 0.014
 
 =head1 SYNOPSIS
 

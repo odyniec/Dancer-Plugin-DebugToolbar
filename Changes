@@ -1,5 +1,8 @@
 Revision history for Dancer-Plugin-DebugToolbar
 
+0.014   2011-08-11
+        * Fixed an issue with DBI::reset being called needlessly
+
 0.013   2011-08-09
         * Fixed issues with using the plugin with Plack
         * Fixed a problem with JavaScript configuration loading
