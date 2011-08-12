@@ -184,7 +184,7 @@ function DebugToolbar(cfg) {
             /* Show the information window */
             
             var top = $toolbarFrame.offset().top - 
-                $(parent.document.window).scrollTop() +
+                $(parent.document).scrollTop() +
                 $toolbarFrame.outerHeight() + 5;
             
             $windowFrame.hide();
