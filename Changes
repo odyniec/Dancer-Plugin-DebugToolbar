@@ -1,5 +1,9 @@
 Revision history for Dancer-Plugin-DebugToolbar
 
+0.015   2011-??-??
+        * Fixed installation problem caused by File::ShareDir::Install missing
+          from CONFIGURE_REQUIRES
+
 0.014   2011-08-11
         * Fixed an issue with DBI::reset being called needlessly
 

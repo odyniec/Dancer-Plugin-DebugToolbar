@@ -14,6 +14,9 @@ WriteMakefile(
       ? ('LICENSE'=> 'perl')
       : ()),
     PL_FILES            => {},
+    CONFIGURE_REQUIRES => {
+        'File::ShareDir::Install'   => 0,
+    },
     PREREQ_PM => {
         'Test::More' => 0,
         'Dancer'     => 1.3070,
