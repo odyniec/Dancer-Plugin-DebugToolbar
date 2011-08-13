@@ -15,11 +15,11 @@ use Dancer::Route::Registry;
 use File::ShareDir;
 use File::Spec::Functions qw(catfile);
 use Module::Loaded;
-use Scalar::Util qw(blessed looks_like_number);
+use Scalar::Util qw(blessed looks_like_number refaddr);
 use Tie::Hash::Indexed;
 use Time::HiRes qw(time);
 
-our $VERSION = '0.014';
+our $VERSION = '0.015';
 
 # Distribution-level shared data directory
 my $dist_dir = File::ShareDir::dist_dir('Dancer-Plugin-DebugToolbar');
@@ -29,13 +29,23 @@ my $time_start;
 my $dbi_trace;
 my $dbi_queries;
 
-my $base = '/dancer-debug-toolbar';
 my $route_pattern;
 my $hook_registered;
 
 my $settings = plugin_setting;
 
+# Are we on?
+if (!$settings->{enable}) {
+    return 1;
+}
+
 # Default settings
+
+if (!defined $settings->{path_prefix}) {
+    # Default path prefix
+    $settings->{path_prefix} = '/dancer-debug-toolbar';
+}
+
 if (!defined $settings->{show}) {
     # By default, we show data and routes
     $settings->{show} = {
@@ -44,8 +54,10 @@ if (!defined $settings->{show}) {
     };
 }
 
-if (!$settings->{enable}) {
-    return 1;
+my $path_prefix = $settings->{path_prefix};
+# Need leading slash
+if ($path_prefix !~ m!^/!) {
+    $path_prefix = '/' . $path_prefix;
 }
 
 if ($settings->{show}->{database}) {
@@ -59,41 +71,61 @@ sub _ordered_hash (%) {
 }
 
 sub _wrap_data {
-    my ($var, %options) = @_;
+    my ($var, $options, $parent_refs) = @_;
     my $ret = {};
     
+    $parent_refs = {} unless defined $parent_refs;
+
     if (UNIVERSAL::isa($var, "ARRAY")) {
-        $ret->{'type'} = 'list';
-        $ret->{'value'} = _ordered_hash();
-        
-        my $i = 0;
-        
-        # List array members
-        foreach my $item (@$var) {
-            $ret->{'value'}->{$i++} = _wrap_data($item, %options);
+        if (!$parent_refs->{refaddr($var)}) {
+            $parent_refs->{refaddr($var)} = 1;
+            
+            $ret->{'type'} = 'list';
+            $ret->{'value'} = _ordered_hash();
+            my $i = 0;
+            
+            # List array members
+            foreach my $item (@$var) {
+                $ret->{'value'}->{$i++} = _wrap_data($item, $options,
+                    $parent_refs);
+            }
+        }
+        else {
+            # Cyclic reference
+            $ret->{type} = 'perl/cyclic-ref';
         }
         
         $ret->{'short_value'} = 'ARRAY';
     }
     elsif (UNIVERSAL::isa($var, "HASH")) {
-        $ret->{'type'} = 'map';
-        $ret->{'value'} = _ordered_hash();
-        
-        foreach my $name ($options{'sort-keys'} ? sort keys %$var : keys %$var) {
-            $ret->{'value'}->{$name} = _wrap_data($var->{$name},
-                %options);
-        }
-        
-        if (my $class = blessed($var)) {
-            # Blessed hash
-            $ret->{'short_value'} = {
-                html => '<div class="value">' .
-                    '<a href="http://search.cpan.org/perldoc?' . $class . '">' .
-                    $class . '</a></div>'
-            };
+        if (!$parent_refs->{refaddr($var)}) {
+            $parent_refs->{refaddr($var)} = 1;
+            
+            $ret->{'type'} = 'map';
+            $ret->{'value'} = _ordered_hash();
+            
+            foreach my $name ($options->{sort_keys} ? sort keys %$var :
+                keys %$var)
+            {
+                $ret->{'value'}->{$name} = _wrap_data($var->{$name}, $options,
+                    $parent_refs);
+            }
+            
+            if (my $class = blessed($var)) {
+                # Blessed hash
+                $ret->{'short_value'} = {
+                    html => '<div class="value">' .
+                        '<a href="http://search.cpan.org/perldoc?' . $class .
+                        '">' . $class . '</a></div>'
+                };
+            }
+            else {
+                $ret->{'short_value'} = 'HASH';
+            }
         }
         else {
-            $ret->{'short_value'} = 'HASH';
+            # Cyclic reference
+            $ret->{type} = 'perl/cyclic-ref';
         }
     }
     elsif (looks_like_number($var)) {
@@ -229,22 +261,22 @@ my $after_hook = sub {
                     'config' => {
                         'name' => 'config',
                         'type' => 'data-structure/perl',
-                        'data' => _wrap_data($config, 'sort-keys' => 1)
+                        'data' => _wrap_data($config, { sort_keys => 1 })
                     },
                     'request' => {
                         'name' => 'request',
                         'type' => 'data-structure/perl',
-                        'data' => _wrap_data($request, 'sort-keys' => 1)
+                        'data' => _wrap_data($request, { sort_keys => 1 })
                     },
                     'session' => $session ? {
                         'name' => 'session',
                         'type' => 'data-structure/perl',
-                        'data' => _wrap_data($session, 'sort-keys' => 1)
+                        'data' => _wrap_data($session, { sort_keys => 1 })
                     } : 1,
                     'vars' => {
                         'name' => 'vars',
                         'type' => 'data-structure/perl',
-                        'data' => _wrap_data($vars, 'sort-keys' => 1)
+                        'data' => _wrap_data($vars, { sort_keys => 1 })
                     }
                 )
             },
@@ -297,7 +329,9 @@ my $after_hook = sub {
     $cfg_json =~ s!'!\\'!gm;
 
     $html =~ s/%DEBUGTOOLBAR_CFG%/$cfg_json/m;
-    $html =~ s/%BASE%/$base/mg;
+    
+    my $uri_base = request->uri_base . $path_prefix;
+    $html =~ s/%BASE%/$uri_base/mg;
     
     $content =~ s!(?=</body>\s*</html>\s*$)!$html!msi;
     
@@ -305,21 +339,17 @@ my $after_hook = sub {
 };
 
 after sub {
-    # Try to get the $after_hook sub executed as the very last "after" hook
-    # (after all the other hooks defined in the application)
+    # Try to get the $after_hook sub executed as the very last hook (after all
+    # the other hooks defined in the application)
     return if $hook_registered;
     after $after_hook;
     $hook_registered = 1;
 };
 
-if (defined $settings->{'base'}) {
-    $base = $settings->{'base'};
-}
-    
-$route_pattern = qr(^$base/.*);
+$route_pattern = qr(^$path_prefix/.*);
     
 get $route_pattern => sub {
-    (my $path = request->path_info) =~ s!^$base/!!;
+    (my $path = request->path_info) =~ s!^$path_prefix/!!;
     
     send_file(catfile($dist_dir, 'debugtoolbar', split(m!/!, $path)),
         system_path => 1);
@@ -334,7 +364,7 @@ __END__
 
 =head1 VERSION
 
-Version 0.014
+Version 0.015
 
 =head1 SYNOPSIS
 
@@ -374,12 +404,12 @@ The available configuration settings are described below.
 
 =head2 enable
 
-Enables the debugging toolbar.
+This setting enables the debugging toolbar.
 
 Example:
 
     enable: 1
-
+    
 =head2 show
 
 The C<show> setting lets you choose which information will be provided by the
@@ -414,6 +444,16 @@ the matching routes.
 
 If the C<show> setting is not defined, the C<data> and C<routes> screens are
 displayed by default.
+
+=head2 path_prefix
+
+The C<path_prefix> setting allows you to change the URL path prefix that the
+toolbar uses to access its resources (e.g., CSS and JavaScript files). By
+default, it's set to C</dancer-debug-toolbar>.
+
+Example:
+
+    path_prefix: /toolbar-files
 
 =head1 AUTHOR
 

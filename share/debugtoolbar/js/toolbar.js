@@ -390,6 +390,8 @@ var DataStructurePerlWidget = DataStructureWidget.extend({
         switch (item['type']) {
         case 'perl/undefined':
             return $('<div class="value value-undefined">undefined</div>');
+        case 'perl/cyclic-ref':
+            return $('<div class="value value-empty">cyclic reference</div>');
         default:
             return this._super(item);
         }

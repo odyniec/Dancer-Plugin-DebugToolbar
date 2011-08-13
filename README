@@ -3,7 +3,7 @@ NAME
     applications
 
 VERSION
-    Version 0.014
+    Version 0.015
 
 SYNOPSIS
     Add the plugin to your web application:
@@ -38,7 +38,7 @@ CONFIGURATION
     The available configuration settings are described below.
 
   enable
-    Enables the debugging toolbar.
+    This setting enables the debugging toolbar.
 
     Example:
 
@@ -72,6 +72,15 @@ CONFIGURATION
 
     If the "show" setting is not defined, the "data" and "routes" screens
     are displayed by default.
+
+  path_prefix
+    The "path_prefix" setting allows you to change the URL path prefix that
+    the toolbar uses to access its resources (e.g., CSS and JavaScript
+    files). By default, it's set to "/dancer-debug-toolbar".
+
+    Example:
+
+        path_prefix: /toolbar-files
 
 AUTHOR
     Michal Wojciechowski, "<odyniec at cpan.org>"
