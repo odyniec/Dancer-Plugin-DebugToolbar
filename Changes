@@ -1,5 +1,8 @@
 Revision history for Dancer-Plugin-DebugToolbar
 
+0.016   ????-??-??
+        * Fixed the displaying of routes defined with regular expressions
+
 0.015   2011-08-13
         * Fixed installation problem caused by File::ShareDir::Install missing
           from CONFIGURE_REQUIRES

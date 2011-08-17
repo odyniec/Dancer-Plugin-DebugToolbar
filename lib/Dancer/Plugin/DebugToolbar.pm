@@ -176,37 +176,39 @@ my $after_hook = sub {
     my $all_routes = {};
     my $matching_routes = {};
     
-    foreach my $type (keys %$routes) {
-        $all_routes->{uc $type} = [];
-        $matching_routes->{uc $type} = [];
+    foreach my $method (keys %$routes) {
+        $all_routes->{uc $method} = [];
+        $matching_routes->{uc $method} = [];
         
-        foreach my $route (@{$routes->{$type}}) {
+        foreach my $route (@{$routes->{$method}}) {
             # Exclude our own route used to access the toolbar JS/CSS files
             next if ($route->{'pattern'} eq $route_pattern);
             
             my $route_info = {};
             my $route_data = _ordered_hash(
-                'Pattern' => $route->{'pattern'},
-                'Compiled regexp' => $route->{'_compiled_regexp'}
+                'Pattern' => qq{$route->{'pattern'}},
+                'Compiled regexp' => qq{$route->{'_compiled_regexp'}}
             );
             
             # Is this a matching route?
-            if (request->path_info =~ $route->{'_compiled_regexp'}) {
+            if (lc request->method eq $method && request->path_info =~
+                    $route->{'_compiled_regexp'})
+            {
                 $route_data->{'Match data'} = $route->match_data;
             }
             
             $route_info = {
-                'pattern' => $route->{'pattern'},
-                'matching' => defined $route_data->{'Match data'},
+                'pattern' => qq{$route->{'pattern'}},
+                'matching' => exists $route_data->{'Match data'},
                 'data' => _wrap_data($route_data)
             };
 
             # Add the route to the list of all routes
-            push(@{$all_routes->{uc $type}}, $route_info);
+            push(@{$all_routes->{uc $method}}, $route_info);
 
             if ($route_info->{matching}) {
                 # Add the route to the list of matching routes
-                push(@{$matching_routes->{uc $type}}, $route_info);
+                push(@{$matching_routes->{uc $method}}, $route_info);
             }
         }
     }
