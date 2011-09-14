@@ -255,3 +255,9 @@ h1 {
     padding: 0.2em;
     white-space: pre;
 }
+
+.page.templates h2 .engine {
+    color: #777;
+    float: right;
+    font-weight: normal;
+}

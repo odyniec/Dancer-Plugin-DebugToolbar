@@ -110,6 +110,12 @@ span.button.routes {
     padding-left: 18px;
 }
 
+span.button.templates {
+    background-image: url("images/document-sub.png");
+    cursor: pointer;
+    padding-left: 18px;
+}
+
 span.button.database {
     background-image: url("images/database.png");
     cursor: pointer;

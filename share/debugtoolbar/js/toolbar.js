@@ -74,8 +74,17 @@ function DebugToolbar(cfg) {
         
         /* Close */
         $('.button.close').click(function () {
-            $toolbarFrame.remove();
-            $toolbarWindow.remove();
+            if (displayedScreen) {
+                $windowFrame.fadeOut(300, function () {
+                    $windowFrame.remove();
+                    $toolbarFrame.remove();
+                });
+                displayedScreen = false;
+            }
+            else {
+                $windowFrame.remove();
+                $toolbarFrame.remove();
+            }
         });
         
         /* Buttons are initially hidden */
@@ -199,8 +208,8 @@ function DebugToolbar(cfg) {
         displayedScreen = screen;
         
         /* If none of the pages is displayed, display the first one */
-        if ($('.page-list li.active', $screen).length == 0)
-            displayPage($('.page-list li:first-child', $screen).data('page'));
+        if ($('.pages .page:visible', $screen).length == 0)
+            displayPage($('.pages .page', $screen).eq(0).data('name'));
         
         windowDisplayed = true;
         
@@ -353,6 +362,7 @@ var Page = Class.extend({
         this.name = name;
         this.options = options;
         this.$page = $('<div class="page" />').addClass(name);
+        this.$page.data('name', name);
     }
 });
 
@@ -442,6 +452,26 @@ var RoutesPage = Page.extend({
     }
 });
 
+var TemplatesPage = Page.extend({
+    init: function (name, options) {
+        this._super(name, options);
+        this.render();
+    },
+    
+    render: function () {
+        for (var i = 0; i < this.options['views'].length; i++) {
+            var view = this.options['views'][i];
+            
+            this.$page.append($('<h2 />').text(view['template'])
+                    .append($('<span class="engine" />').text(view['engine'])));
+            
+            var $widget = (new DataStructurePerlWidget(view['tokens'])).get();
+            
+            this.$page.append($widget);
+        }
+    }
+});
+
 var DatabaseQueriesPage = Page.extend({
     init: function (name, options) {
         this._super(name, options);
@@ -470,6 +500,7 @@ pageHandlers['data-structure'] = DataStructurePage;
 /* Perl and/or Dancer-specific pages */
 pageHandlers['data-structure/perl'] = DataStructurePerlPage;
 pageHandlers['routes'] = RoutesPage;
+pageHandlers['templates'] = TemplatesPage;
 pageHandlers['database-queries'] = DatabaseQueriesPage;
 
 /* --- */

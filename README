@@ -3,7 +3,7 @@ NAME
     applications
 
 VERSION
-    Version 0.015
+    Version 0.016
 
 SYNOPSIS
     Add the plugin to your web application:
@@ -65,6 +65,11 @@ CONFIGURATION
 
         Database information screen. Shows DBI trace and queries log.
 
+    *   templates
+
+        Templates screen. Displays the names of rendered templates and lets
+        you inspect the data that was passed to them.
+
     *   routes
 
         Routes screen. Shows all the routes defined in the application, and
@@ -116,6 +121,9 @@ SUPPORT
     *   Search CPAN
 
         <http://search.cpan.org/dist/Dancer-Plugin-DebugToolbar/>
+
+ACKNOWLEDGEMENTS
+    Uses icons from the Fugue Icons set (<http://p.yusukekamiyamane.com/>).
 
 LICENSE AND COPYRIGHT
     Copyright 2011 Michal Wojciechowski.
