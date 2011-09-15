@@ -323,7 +323,7 @@ my $after_filter = sub {
             )
         },
         'screens' => {
-            'data' => {
+            'data' => $show->{'data'} ? {
                 'title' => 'Data',
                 'pages' => _ordered_hash(
                     'config' => {
@@ -347,8 +347,8 @@ my $after_filter = sub {
                         'data' => _wrap_data($vars, { sort_keys => 1 })
                     }
                 )
-            },
-            'routes' => {
+            } : undef,
+            'routes' => $show->{'routes'} ? {
                 'title' => 'Routes',
                 'pages' => _ordered_hash(
                     'all' => {
@@ -360,9 +360,9 @@ my $after_filter = sub {
                         'routes' => $matching_routes
                     }
                 )
-            },
+            } : undef,
             # Templates
-            'templates' => {
+            'templates' => $show->{'templates'} ? {
                 'title' => 'Templates',
                 'pages' => _ordered_hash(
                     'templates' => {
@@ -370,7 +370,7 @@ my $after_filter = sub {
                         'views' => $views
                     }
                 )
-            },
+            } : undef,
             # Database
             'database' => $show->{'database'} ? {
                 'title' => 'Database',
