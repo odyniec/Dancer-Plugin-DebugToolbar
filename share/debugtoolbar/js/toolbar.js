@@ -314,7 +314,7 @@ var DataStructureWidget = Widget.extend({
                 .text(item['value']);
         case 'string':
             return $('<div class="value value-string" />')
-                .text(item['value']);
+                .text('"' + item['value'] + '"');
         default:
             return $('<div class="value" />').text(item['value']);
         }
@@ -398,6 +398,14 @@ var DataStructurePerlWidget = DataStructureWidget.extend({
     
     htmlizeValue: function (item) {
         switch (item['type']) {
+        case 'perl/ref':
+            return $('<div class="value value-ref">(' +
+                item['ref'] + ') ' +
+                (item['value'] !== undefined ? 
+                    '<span class="value-string">"' + item['value'] +
+                    '"</span>' :
+                    '<span class="value-undefined">undefined</span>') +
+                '</div>');
         case 'perl/undefined':
             return $('<div class="value value-undefined">undefined</div>');
         case 'perl/cyclic-ref':

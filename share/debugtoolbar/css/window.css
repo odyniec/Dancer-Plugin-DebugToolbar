@@ -207,16 +207,16 @@ h1 {
     word-wrap: break-word;
 }
 
-.widget.data-structure div.value-number {
+.widget.data-structure .value-number {
     color: #45e;
 }
 
-.widget.data-structure div.value-string {
+.widget.data-structure .value-string {
     color: #0a1;
 }
 
-.widget.data-structure div.value-undefined,
-.widget.data-structure div.value-empty {
+.widget.data-structure .value-undefined,
+.widget.data-structure .value-empty {
     color: #888;
     font-style: italic;
 }
@@ -261,3 +261,12 @@ h1 {
     float: right;
     font-weight: normal;
 }
+
+.widget.data-structure .value-ref {
+    color: #555;
+}
+
+.widget.data-structure .value-ref .value-string {
+    margin-left: auto;
+}
+

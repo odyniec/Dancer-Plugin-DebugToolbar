@@ -1,7 +1,9 @@
 Revision history for Dancer-Plugin-DebugToolbar
 
 0.017   2011-??-??
-        * Excluded unused data from configuration passed to JavaScript code 
+        * Excluded unused data from configuration passed to JavaScript code
+        * Improved displaying of blessed references
+        * Fixed JSON encoding problem
 
 0.016   2011-09-14
         * Fixed the displaying of routes defined with regular expressions

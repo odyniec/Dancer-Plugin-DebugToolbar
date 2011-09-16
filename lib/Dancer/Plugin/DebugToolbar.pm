@@ -133,6 +133,22 @@ sub _wrap_data {
             $ret->{type} = 'perl/cyclic-ref';
         }
     }
+    elsif (UNIVERSAL::isa($var, "CODE")) {
+        # Code reference
+        $ret->{'type'} = 'perl/code-ref';
+        $ret->{'value'} = 'sub { ... }';
+    }
+    elsif (ref($var)) {
+        $ret->{'type'} = 'perl/ref';
+        $ret->{'ref'} = ref $var;
+        if (defined($var)) {
+            $ret->{'value'} = length('' . $var) < 1000 ? '' . $var : 
+                substr('' . $var, 1000) . "...";
+        }
+        else {
+            $ret->{'value'} = undef;
+        }
+    }
     elsif (looks_like_number($var)) {
         # Number
         $ret->{'type'} = 'number';
@@ -141,7 +157,8 @@ sub _wrap_data {
     elsif (defined $var) {
         # String
         $ret->{'type'} = 'string';
-        $ret->{'value'} = '"' . $var . '"';
+        #$ret->{'value'} = '"' . $var . '"';
+        $ret->{'value'} = $var;
     }
     elsif (!defined $var) {
         # Undefined
@@ -398,7 +415,7 @@ my $after_filter = sub {
     close(F);
     
     # Encode the configuration as JSON
-    my $cfg_json = to_json($toolbar_cfg);
+    my $cfg_json = to_json($toolbar_cfg, { escape_slash => 1 });
     
     # Do some replacements so that the JSON data can be made into a JS string
     # wrapped in single quotes
