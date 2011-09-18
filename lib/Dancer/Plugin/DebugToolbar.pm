@@ -158,7 +158,7 @@ sub _wrap_data {
         # String
         $ret->{'type'} = 'string';
         #$ret->{'value'} = '"' . $var . '"';
-        $ret->{'value'} = $var;
+        $ret->{'value'} = '' . $var;
     }
     elsif (!defined $var) {
         # Undefined
