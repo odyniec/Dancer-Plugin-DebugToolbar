@@ -218,7 +218,7 @@ sub _wrap_data {
     }
 }
 
-before sub {
+hook 'before' => sub {
     return if request->path_info =~ $route_pattern;
     
     my $request_id = request->path_info . time;
@@ -433,11 +433,11 @@ my $after_filter = sub {
     $response->content($content);
 };
 
-after sub {
+hook 'after' => sub {
     # Try to get the $after_filter sub executed as the very last filter (after
     # all the other filters defined in the application)
     return if $filter_registered;
-    after $after_filter;
+    hook 'after' => $after_filter;
     $filter_registered = 1;
 };
 
