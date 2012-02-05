@@ -5,6 +5,10 @@ use File::ShareDir::Install;
 
 install_share 'share';
 
+my $preop =
+    'perldoc -uT $(VERSION_FROM) | tee $(DISTVNAME)/README.pod > README.pod;' .
+    'pod2text README.pod | tee $(DISTVNAME)/README > README';
+
 WriteMakefile(
     NAME                => 'Dancer::Plugin::DebugToolbar',
     AUTHOR              => q{Michal Wojciechowski <odyniec@cpan.org>},
@@ -24,7 +28,11 @@ WriteMakefile(
         'File::ShareDir::Install'   => 0,
         'Tie::Hash::Indexed'    => 0,
     },
-    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    dist => {
+        COMPRESS => 'gzip -9f',
+        SUFFIX => 'gz',
+        PREOP => $preop
+    },
     clean               => { FILES => 'Dancer-Plugin-DebugToolbar-*' },
 );
     
@@ -35,16 +43,6 @@ sub MY::postamble
 {
     my $self = shift;
     my @ret = File::ShareDir::Install::postamble($self);
-    
-    return join("\n", @ret) if -r 'README' or ! -r $self->{VERSION_FROM};
-    
-    push @ret, <<END_MAKE;
-README.pod: $self->{VERSION_FROM}
-\t\@perldoc -uT $self->{VERSION_FROM} > README.pod
-
-README: $self->{VERSION_FROM}
-\tpod2text README.pod > README
-END_MAKE
     
     return join "\n", @ret;
 }
