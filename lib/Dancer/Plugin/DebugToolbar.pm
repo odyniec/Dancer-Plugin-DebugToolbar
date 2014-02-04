@@ -8,6 +8,8 @@ Dancer::Plugin::DebugToolbar - A debugging toolbar for Dancer web applications
 
 use strict;
 
+BEGIN { $ENV{PERL_JSON_BACKEND} = 'JSON::PP' }
+
 use Dancer ':syntax';
 use Dancer::App;
 use Dancer::Plugin;

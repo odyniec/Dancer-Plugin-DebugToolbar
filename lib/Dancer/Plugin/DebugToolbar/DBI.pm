@@ -6,6 +6,8 @@ use strict;
 use warnings;
 use DBI;
 
+our $VERSION = '0.016';
+
 our @ISA = qw(DBI);
 
 my $_dbi_trace;
